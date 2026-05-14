@@ -1,0 +1,31 @@
+
+TIME: 2026-05-14 11:57:25
+Regular Burger x1 = ₱50
+Cheesy Burger x1 = ₱80
+French Fries | Barbeque | Small x1 = ₱60
+Onion Rings x1 = ₱70
+MilkTea | Strawberry | Small x1 = ₱90
+Ketchup x1 = ₱10
+Mayonnaise x1 = ₱15
+TOTAL: ₱375
+CASH: ₱500.0
+CHANGE: ₱125.0
+==================================================
+
+TIME: 2026-05-14 12:36:14
+Regular Burger x1 = ₱50
+Cheesy Burger x1 = ₱80
+Chicken Burger x1 = ₱85
+TOTAL: ₱215
+CASH: ₱5665.0
+CHANGE: ₱5450.0
+==================================================
+
+TIME: 2026-05-14 12:36:37
+Ham Burger x1 = ₱95
+Iced Coffee x1 = ₱95
+Mayonnaise x1 = ₱15
+TOTAL: ₱205
+CASH: ₱300.0
+CHANGE: ₱95.0
+==================================================
