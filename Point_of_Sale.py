@@ -11,6 +11,53 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.txt")
 OVERALL_FILE = os.path.join(BASE_DIR, "overall_orders.txt")
 
+def load_orders():
+    global order_counter
+
+    if not os.path.exists(OVERALL_FILE):
+        return
+
+    with open(OVERALL_FILE, "r") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        current_order = None
+
+    for line in lines:
+        line = line.strip()
+
+        if line.startswith("ORDER #"):
+            if current_order:
+                orders_history.append(current_order)
+
+            order_number = int(line.replace("ORDER #", ""))
+            current_order = {
+                "order_no": order_number,
+                "time": "",
+                "items": [],
+                "total": 0
+            }
+
+            order_counter = max(order_counter, order_number + 1)
+
+        elif line.startswith("TIME:"):
+            if current_order is not None:
+                current_order["time"] = line.replace("TIME: ", "")
+
+        elif "x" in line and "₱" in line:
+            if current_order is not None:
+                current_order["items"].append(line)
+
+        elif line.startswith("TOTAL:"):
+            if current_order is not None:
+                try:
+                    current_order["total"] = float(line.replace("TOTAL: ₱", ""))
+                except:
+                    current_order["total"] = 0
+
+    if current_order:
+        orders_history.append(current_order)
+
 
 # =========================
 # WINDOW
@@ -76,7 +123,7 @@ cart = []
 orders_history = []
 sales_by_date = {}
 cash_var = tk.StringVar()
-
+order_counter = 1
 
 # =========================
 # BUTTON HIGHLIGHT
@@ -155,64 +202,6 @@ def clear_cart():
 
 
 # =========================
-# CHECKOUT + SAVE
-# =========================
-def checkout():
-    if not cart:
-        messagebox.showwarning("Empty", "Cart is empty")
-        return
-
-    total = update_cart()
-
-    try:
-        cash = float(cash_var.get())
-    except:
-        messagebox.showerror("Error", "Enter valid cash")
-        return
-
-    if cash < total:
-        messagebox.showerror("Insufficient", "Not enough cash")
-        return
-
-    change = cash - total
-    time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    date_key = datetime.now().strftime("%Y-%m-%d")
-
-    orders_history.append({
-        "time": time_now,
-        "items": cart.copy(),
-        "total": total,
-        "cash": cash,
-        "change": change
-    })
-
-    sales_by_date.setdefault(date_key, 0)
-    sales_by_date[date_key] += total
-
-    with open(ORDERS_FILE, "a") as f:
-        f.write(f"\nTIME: {time_now}\n")
-        for item in cart:
-            f.write(f"{item['name']} x{item['qty']} = ₱{item['price']*item['qty']}\n")
-        f.write(f"TOTAL: ₱{total}\n")
-        f.write("-"*40 + "\n")
-
-    with open(OVERALL_FILE, "a") as f:
-        f.write(f"\nTIME: {time_now}\n")
-        for item in cart:
-            f.write(f"{item['name']} x{item['qty']} = ₱{item['price']*item['qty']}\n")
-        f.write(f"TOTAL: ₱{total}\n")
-        f.write(f"CASH: ₱{cash}\n")
-        f.write(f"CHANGE: ₱{change}\n")
-        f.write("="*50 + "\n")
-
-    messagebox.showinfo("Receipt", f"TOTAL: ₱{total}\nCHANGE: ₱{change}") 
-    
-
-    cart.clear()
-    cash_var.set("")
-    update_cart()
-
-# =========================
 # RECEIPT
 # =========================
 def checkout():
@@ -222,7 +211,6 @@ def checkout():
         return
 
     total = 0
-
     for item in cart:
         total += item["qty"] * item["price"]
 
@@ -237,7 +225,27 @@ def checkout():
         return
 
     change = cash - total
+    global order_counter
+
+    order_no = order_counter
+    order_counter += 1
+
     time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date_key = datetime.now().strftime("%Y-%m-%d")
+
+    
+    orders_history.append({
+        "order_no": order_no,
+        "time": time_now,
+        "items": cart.copy(),
+        "total": total,
+        "cash": cash,
+        "change": change
+    })
+
+    sales_by_date.setdefault(date_key, 0)
+    sales_by_date[date_key] += total
+
 
     # =========================
     # RECEIPT WINDOW
@@ -271,21 +279,14 @@ def checkout():
     )
     receipt_box.pack(pady=10)
 
+    receipt_box.insert(tk.END, f"ORDER #: {order_no}\n")
     receipt_box.insert(tk.END, "=================================\n")
 
     for item in cart:
-
         subtotal = item["qty"] * item["price"]
 
-        receipt_box.insert(
-            tk.END,
-            f"{item['name']}\n"
-        )
-
-        receipt_box.insert(
-            tk.END,
-            f"{item['qty']} x ₱{item['price']} = ₱{subtotal}\n\n"
-        )
+        receipt_box.insert(tk.END, f"{item['name']}\n")
+        receipt_box.insert(tk.END, f"{item['qty']} x ₱{item['price']} = ₱{subtotal}\n\n")
 
     receipt_box.insert(tk.END, "=================================\n")
     receipt_box.insert(tk.END, f"TOTAL  : ₱{total}\n")
@@ -296,10 +297,11 @@ def checkout():
 
     receipt_box.config(state="disabled")
 
-    # CLEAR CART
+  
     cart.clear()
     cash_var.set("")
     update_cart()
+   
 
 # =========================
 # VIEW ORDERS
@@ -315,7 +317,7 @@ def view_orders():
     def refresh():
         listbox.delete(0, tk.END)
         for i, o in enumerate(orders_history):
-            listbox.insert(tk.END, f"{i+1}. {o['time']} | ₱{o['total']}")
+            listbox.insert(tk.END, f"Order #{o.get('order_no', i+1)} | {o['time']} | ₱{o['total']}")
 
     def delete_order():
         sel = listbox.curselection()
@@ -608,4 +610,5 @@ def display_products(category):
 # START
 # =========================
 show_home()
+load_orders()
 root.mainloop()
